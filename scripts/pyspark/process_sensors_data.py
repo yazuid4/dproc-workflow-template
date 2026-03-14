@@ -32,6 +32,9 @@ sensors_data_schema = StructType([
         StructField("scattering_coefficient", DoubleType(), True),
         StructField("deciviews", DoubleType(), True),
         StructField("visual_range", DoubleType(), True),
+        StructField("state", StringType(), True),
+        StructField("extract_ts", TimestampType(), True),
+        StructField("data_ts", TimestampType(), True)
 ])
 
 
@@ -51,54 +54,54 @@ def job(args):
     source_path = f"gs://{args.bucket_name}/{args.source_path}/{ingest_day}"
     target_path = f"gs://{args.bucket_name}/{args.target_path}"
 
+    # load batch json
+    df_sensors = spark.read.option("multiline", "true").json(source_path)
 
-    df_sensors = spark.read.json(source_path)
-
-    df_exploded = df_sensors.select(
-        F.explode("data").alias("row"),
-        F.col("fields")
+    # start processing
+    df = (
+        df_sensors.withColumn("row", F.explode("data"))
+        .select(
+            "row",
+            "fields",
+            "state",
+            F.to_timestamp(F.from_unixtime("time_stamp")).alias("extract_ts"),
+            F.to_timestamp(F.from_unixtime("data_time_stamp")).alias("data_ts")
+        )
     )
 
     columns = df_sensors.select("fields").first()["fields"]
 
-    df = df_exploded.select(
+    df = df.select(
         *[
             F.col("row")[i].alias(columns[i])
             for i in range(len(columns))
-        ]
+        ],
+        "state",
+        "extract_ts", "data_ts"
     )
 
     df = df.withColumn(
-            "date_created",
-            F.to_timestamp(F.from_unixtime(F.col("date_created").cast("long")))
-        ).withColumn(
-            "last_seen",
-            F.to_timestamp(F.from_unixtime(F.col("last_seen").cast("long")))
-        )
+                "date_created",
+                F.to_timestamp(F.from_unixtime(F.col("date_created").cast("long")))
+            ).withColumn(
+                "last_seen",
+                F.to_timestamp(F.from_unixtime(F.col("last_seen").cast("long")))
+            )
 
+    # apply schema
     df = df.select(
         *[
             F.col(f"`{field.name}`").cast(field.dataType).alias(field.name)
             for field in sensors_data_schema.fields
         ]
     )
-
-    df = df.crossJoin(
-        df_sensors.select(
-                    F.col("state"),
-                    F.to_timestamp(F.from_unixtime("time_stamp")).alias("extract_ts"), 
-                    F.to_timestamp(F.from_unixtime("data_time_stamp")).alias("data_ts"),
-                    
-                 )
-    )
-
+    
     df = df.withColumn("ingest_on", F.lit(ingest_day))
 
-    df.write.mode("overwrite") \
-            .option("header", "true") \
-            .partitionBy("ingest_on", "state") \
-            .csv(target_path)
+    df = df.repartition("state")
 
+    df.write.mode("overwrite").option("header", "true")\
+        .partitionBy("ingest_on", "state").csv(target_path)
 
 
 
