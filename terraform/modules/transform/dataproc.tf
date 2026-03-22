@@ -8,7 +8,7 @@ resource "google_dataproc_workflow_template" "sensors_etl_job" {
       cluster_name = "${var.project}-etl-cluster"
       config {
         gce_cluster_config {
-          # zone = var.zone
+          # zone            = var.zone
           service_account = google_service_account.dataproc_service_account.email
           internal_ip_only = false 
         }
@@ -35,8 +35,9 @@ resource "google_dataproc_workflow_template" "sensors_etl_job" {
     pyspark_job {
       main_python_file_uri = "gs://${var.data_lake_name}/${var.spark_scripts_name}/process_sensors_data.py"
       
+      # arguments
       args = [
-        "--bucket_name", var.data_lake_name,
+        "--s3_bucket", var.data_lake_name,
         "--source_path", "source/",
         "--target_path", "processed/",
         "--compression", "snappy",
@@ -48,3 +49,5 @@ resource "google_dataproc_workflow_template" "sensors_etl_job" {
     }
   }
 }
+
+

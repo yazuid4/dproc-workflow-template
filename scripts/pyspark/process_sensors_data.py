@@ -39,10 +39,11 @@ sensors_data_schema = StructType([
 
 
 
+
 def job(args):
 
     spark = SparkSession.builder \
-                .appName("transform-sensors") \
+                .appName("test") \
                 .getOrCreate()
     
     ingest_day = args.ingest_day
@@ -50,11 +51,9 @@ def job(args):
     if not ingest_day:
         ingest_day = datetime.now().strftime("%Y-%m-%d")
     
-
     source_path = f"gs://{args.bucket_name}/{args.source_path}/{ingest_day}"
     target_path = f"gs://{args.bucket_name}/{args.target_path}"
-
-    # load batch json
+    
     df_sensors = spark.read.option("multiline", "true").json(source_path)
 
     # start processing
@@ -95,13 +94,17 @@ def job(args):
             for field in sensors_data_schema.fields
         ]
     )
-    
+
     df = df.withColumn("ingest_on", F.lit(ingest_day))
 
     df = df.repartition("state")
 
-    df.write.mode("overwrite").option("header", "true")\
-        .partitionBy("ingest_on", "state").csv(target_path)
+    df.write.mode("append") \
+            .option("header", "true") \
+            .option("quote", '"') \
+            .option("escape", '"') \
+            .partitionBy("ingest_on", "state") \
+            .csv(target_path)
 
 
 
