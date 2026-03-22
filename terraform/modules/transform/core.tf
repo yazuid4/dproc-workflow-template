@@ -1,6 +1,6 @@
 resource "google_service_account" "dataproc_service_account" {
   account_id   = "${var.project}-dproc-sa"
-  display_name = "Service Account for Dataproc"
+  display_name = "service account for Dataproc"
 }
 
 resource "google_project_iam_member" "dataproc_roles" {

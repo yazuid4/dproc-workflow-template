@@ -1,15 +1,19 @@
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.0"
-    }
-  }
+module "transform" {
+    source = "./modules/transform"
+
+    project = var.project
+    region  = var.region
+    zone    = var.zone
+    data_lake_name = var.data_lake_name
+    spark_scripts_name = var.spark_scripts_name
 }
 
-provider "google" {
-  project = var.project
-  region  = var.region
-  zone    = var.zone
-}
 
+module "bigquery" {
+    source = "./modules/bigquery"
+
+    data_lake_name   = var.data_lake_name
+    bq_dataset_name  = var.bq_dataset_name
+    bq_table_name    = var.bq_table_name
+    processed_folder = var.processed_folder
+}

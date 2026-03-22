@@ -1,3 +1,4 @@
+
 variable "project" {
   description = "the project Id"
   type = string
@@ -20,20 +21,5 @@ variable "data_lake_name" {
 
 variable "spark_scripts_name" {
   type        = string
-  description = "bucket folder for scripts"
-}
-
-variable "bq_dataset_name" {
-    type = string
-    description = "bigquery dataset"
-}
-
-variable "bq_table_name" {
-    type = string
-    description = "bigquery table"
-}
-
-variable "processed_folder" {
-   type        = string
-   description = "folder containing processed data"
+  description = "spark scripts folder in the bucket"
 }
