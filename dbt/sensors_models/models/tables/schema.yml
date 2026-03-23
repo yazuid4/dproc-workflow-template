@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: Silver
+    dataset: sensors
+    
+    tables:
+      - name: sensors_data_silver

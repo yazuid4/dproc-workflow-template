@@ -1,0 +1,10 @@
+sensors_models:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: <project_id>
+      dataset: sensors
+      threads: 4
+      keyfile: <service_account_dbt_key>
